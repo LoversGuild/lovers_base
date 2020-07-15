@@ -2,11 +2,11 @@
 lovers_base
 ===========
 
-This is the documentation of **lovers_base** – a library facilitating access to the person registry maintained by The Lovers' Guild.
+This is the documentation of **lovers_base** – a library facilitating access to the personal and event data maintained by Lovers' Guild.
 
 .. note::
 
-    This documentation is incomplete. This library is intended for use only in projects developed by the Lovers' Guild. No stability or backwards compatibility of any kind is guaranteed.
+    This documentation is incomplete. This library is intended for use only in projects developed by Lovers' Guild. No stability or backwards compatibility of any kind is guaranteed at the moment.
 
 Contents
 ========
