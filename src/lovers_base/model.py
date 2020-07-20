@@ -100,7 +100,7 @@ class Individual(_Base):
 
     """
 
-    __tablename__ = "person_id"
+    __tablename__ = "individual"
 
     id = sql.Column(sql.Integer, primary_key=True)
 
@@ -422,8 +422,8 @@ class Participation(_Base):
         foreign_keys='participation_id',
         #cascade="all, delete-orphan",  # Deletion should not happen
         #passive_deletes=True,  # Deletion should not happen
-        order_by=lambda: StatusLog.order,
-        collection_class=sql_ordlist.ordering_list('order'))
+        order_by=lambda: StatusLog.position,
+        collection_class=sql_ordlist.ordering_list('position'))
     invitation_targets = sql_orm.relationship(
         lambda: Participation,
         remote_side=[id],
