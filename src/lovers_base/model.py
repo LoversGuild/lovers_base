@@ -141,11 +141,11 @@ class Person(_Base):
     Relationship attributes:
     individual: The source of this person's id
     languages: The list of languages spoken by this user
-    participant: Information about this person that is linked to participating sexual events
     notes: A list of various notes related to this user (information for event
         organizers/personal data administrators) [TODO: not implemented yet]
 
     Other attributes:
+    participant: Information about this person that is linked to participating sexual events
     name: A convenience attribute containign nickname and last name separated by a space
     """
 
@@ -163,7 +163,6 @@ class Person(_Base):
 
     languages = sql_orm.relationship(
         lambda: LanguageProficiency,
-        foreign_keys='LanguageProficiency.person_id',
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by=lambda: LanguageProficiency.priority,
@@ -172,11 +171,19 @@ class Person(_Base):
         lambda: Individual,
         uselist=False,
         back_populates='person')
-    participant = sql_orm.relationship(
-        lambda: Participant,
-        foreign_keys=lambda: [Person.id, Participant.id],
-        uselist=False,
-        back_populates='person')
+
+    @property
+    def participant(self):
+        """Return the object representing participation infomration for this person.
+
+        Returns:
+            A Participant instance, or None, if self.individual does not
+            specify the participant.
+        """
+        if self.individual is None:
+            raise ValueError(
+                F"Person {self} does not reference a parent individual.")
+        return self.individual.participant
 
     @property
     def name(self) -> str:
@@ -197,7 +204,7 @@ class LanguageProficiency(_Base):
     priority: Priority of this language relative to the person
     language: Two-letter ISO language code
 
-    Reference attributes:
+    Relationship attributes:
     person: The person to which this language proficiency definition applies to
     """
 
@@ -231,8 +238,10 @@ class Participant(_Base):
 
     Reference attributes:
     orientation: Sexual orientation
-    person: Identity and contact information for this participant
     participations: List of participations
+
+    Other attributes:
+    person: Identity and contact information for this participant
     """
 
     __tablename__ = 'participant'
@@ -252,15 +261,23 @@ class Participant(_Base):
         lambda: Individual,
         uselist=False,
         back_populates='participant')
-    person = sql_orm.relationship(
-        lambda: Person,
-        uselist=False,
-        back_populates='participant')
     participations = sql_orm.relationship(
         lambda: Participation,
-        foreign_keys='participant_id',
-        order_by='participation.id',
+        order_by=lambda: Participation.id,
         back_populates='participant')
+
+    @property
+    def person(self):
+        """Return the object representing personal data for this participant.
+
+        Returns:
+            A Person instance, or None, if self.individual does not
+            specify the participant.
+        """
+        if self.individual is None:
+            raise ValueError(
+                F"Participant {self} does not reference a parent individual.")
+        return self.individual.person
 
 class Orientation(_Base):
     """Description of a participant's sexual orientation.
@@ -334,13 +351,10 @@ class Event(_Base):
                              sql.ForeignKey('location.id', onupdate='CASCADE'))
     language = sql.Column(sql.Unicode(2))
 
-    location = sql_orm.relationship(
-        lambda: Location,
-        uselist=False,
-        foreign_keys='Event.location_id')
+    location = sql_orm.relationship(lambda: Location, uselist=False)
     participations = sql_orm.relationship(
         lambda: Participation,
-        order_by='parcipation.id',
+        order_by=lambda: Participation.id,
         back_populates='event')
 
 class Location(_Base):
@@ -444,10 +458,12 @@ class Participation(_Base):
     notes = sql.Column(sql.Unicode(1024))
 
     event = sql_orm.relationship(lambda: Event, uselist=False)
-    participant = sql_orm.relationship(lambda: Event, uselist=False)
+    participant = sql_orm.relationship(
+        lambda: Participant,
+        uselist=False,
+        back_populates="participations")
     status_log = sql_orm.relationship(
         lambda: StatusLog,
-        foreign_keys='participation_id',
         #cascade="all, delete-orphan",  # Deletion should not happen
         #passive_deletes=True,  # Deletion should not happen
         order_by=lambda: StatusLog.position,
