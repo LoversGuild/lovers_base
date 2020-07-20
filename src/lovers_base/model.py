@@ -30,7 +30,9 @@ def set_sqlite_pragma(dbapi_connection, connection_record) -> None:
 
     del connection_record # Unused
 
-    if dbapi_connection.engine.driver != 'pysqlite':
+    # TODO: Fix sqlite detection logic
+    import sqlite3
+    if isinstance(dbapi_connection, sqlite3.Connection):
         return
 
     cursor = dbapi_connection.cursor()
