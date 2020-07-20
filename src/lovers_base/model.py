@@ -477,7 +477,8 @@ class StatusLog(_Base):
                                   primary_key=True)
     position = sql.Column(sql.Integer,
                           primary_key=True,
-                          autoincrement=True)
+                          #autoincrement=True  # Not supported by sqlite
+                          )
     timestamp = sql.Column(sql.DateTime(timezone=True))
     status = sql.Column(sql.Enum(ParticipationStatus), nullable=False)
     notes = sql.Column(sql.Unicode(1024))
