@@ -104,7 +104,10 @@ class Individual(_Base):
 
     id = sql.Column(sql.Integer, primary_key=True)
 
-    person = sql_orm.relation(lambda: Person, uselist=False, back_populates="individual")
+    person = sql_orm.relation(
+        lambda: Person,
+        uselist=False,
+        back_populates="individual")
     participant = sql_orm.relation(lambda: Participant, uselist=False, back_populates="individual")
 
     def __repr__(self) -> str:
@@ -148,7 +151,9 @@ class Person(_Base):
 
     __tablename__ = 'person'
 
-    id = sql.Column(sql.Integer, sql.ForeignKey('individual.id'), primary_key=True)
+    id = sql.Column(sql.Integer,
+                    sql.ForeignKey('individual.id', onupdate='CASCADE'),
+                    primary_key=True)
     first_names = sql.Column(sql.Unicode(120), nullable=False)
     last_name = sql.Column(sql.Unicode(120), nullable=False)
     nickname = sql.Column(sql.Unicode(120), nullable=False)
@@ -158,13 +163,18 @@ class Person(_Base):
 
     languages = sql_orm.relationship(
         lambda: LanguageProficiency,
-        foreign_keys='person_id',
+        foreign_keys='LanguageProficiency.person_id',
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by=lambda: LanguageProficiency.priority,
         collection_class=sql_ordlist.ordering_list('priority'))
+    individual = sql_orm.relationship(
+        lambda: Individual,
+        uselist=False,
+        back_populates='person')
     participant = sql_orm.relationship(
         lambda: Participant,
+        foreign_keys=lambda: [Person.id, Participant.id],
         uselist=False,
         back_populates='person')
 
@@ -194,8 +204,9 @@ class LanguageProficiency(_Base):
     __tablename__ = 'language_proficiency'
 
     id = sql.Column(sql.Integer, primary_key=True)
-    person_id = sql.Column(sql.Integer,
-                           sql.ForeignKey('person.id', ondelete='CASCADE'))
+    person_id = sql.Column(
+        sql.Integer,
+        sql.ForeignKey('person.id', ondelete='CASCADE', onupdate='CASCADE'))
     priority = sql.Column(sql.Integer)
     language = sql.Column(sql.Unicode(2), nullable=False)
 
@@ -226,7 +237,9 @@ class Participant(_Base):
 
     __tablename__ = 'participant'
 
-    id = sql.Column(sql.Integer, sql.ForeignKey('individual.id'), primary_key=True)
+    id = sql.Column(sql.Integer,
+                    sql.ForeignKey('individual.id', onupdate='CASCADE'),
+                    primary_key=True)
     birth_year = sql.Column(sql.Integer)
     genitalia = sql.Column(sql.Enum(Genitalia), nullable=False)
 
@@ -235,6 +248,10 @@ class Participant(_Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         uselist=False)
+    individual = sql_orm.relationship(
+        lambda: Individual,
+        uselist=False,
+        back_populates='participant')
     person = sql_orm.relationship(
         lambda: Person,
         uselist=False,
@@ -262,8 +279,11 @@ class Orientation(_Base):
 
     __tablename__ = 'orientation'
 
-    id = sql.Column(sql.Integer,
-                    sql.ForeignKey('participant.id', ondelete="CASCADE"),
+    id = sql.Column(
+        sql.Integer,
+        sql.ForeignKey('participant.id',
+                       ondelete='CASCADE',
+                       onupdate='CASCADE'),
                     primary_key=True)
     female = sql.Column(sql.Integer)
     male = sql.Column(sql.Integer)
@@ -310,7 +330,8 @@ class Event(_Base):
     kind = sql.Column(sql.Enum(EventType), nullable=False)
     start_time = sql.Column(sql.DateTime(timezone=True), nullable=False)
     end_time = sql.Column(sql.DateTime(timezone=True), nullable=False)
-    location_id = sql.Column(sql.Integer, sql.ForeignKey('location.id'))
+    location_id = sql.Column(sql.Integer,
+                             sql.ForeignKey('location.id', onupdate='CASCADE'))
     language = sql.Column(sql.Unicode(2))
 
     location = sql_orm.relationship(
@@ -407,12 +428,19 @@ class Participation(_Base):
     __tablename__ = 'participation'
 
     id = sql.Column(sql.Integer, primary_key=True, autoincrement=True)
-    event_id = sql.Column(sql.Integer, sql.ForeignKey('event.id'), unique=True, nullable=False)
-    participant_id = sql.Column(sql.Integer, sql.ForeignKey('participant.id'),
-                                unique=True,
-                                nullable=False)
+    event_id = sql.Column(sql.Integer,
+                          sql.ForeignKey('event.id', onupdate='CASCADE'),
+                          unique=True,
+                          nullable=False)
+    participant_id = sql.Column(
+        sql.Integer,
+        sql.ForeignKey('participant.id', onupdate='CASCADE'),
+        unique=True,
+        nullable=False)
     role = sql.Column(sql.Enum(Role), nullable=False)
-    invitation_source_id = sql.Column(sql.Integer, sql.ForeignKey('participation.id'))
+    invitation_source_id = sql.Column(
+        sql.Integer,
+        sql.ForeignKey('participation.id', onupdate='CASCADE'))
     notes = sql.Column(sql.Unicode(1024))
 
     event = sql_orm.relationship(lambda: Event, uselist=False)
@@ -472,9 +500,10 @@ class StatusLog(_Base):
 
     __tablename__ = 'status_log'
 
-    participation_id = sql.Column(sql.Integer,
-                                  sql.ForeignKey('participation.id'),
-                                  primary_key=True)
+    participation_id = sql.Column(
+        sql.Integer,
+        sql.ForeignKey('participation.id', onupdate='CASCADE'),
+        primary_key=True)
     position = sql.Column(sql.Integer,
                           primary_key=True,
                           #autoincrement=True  # Not supported by sqlite
